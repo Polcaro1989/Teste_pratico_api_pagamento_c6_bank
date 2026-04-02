@@ -4,6 +4,7 @@ using System.Security.Cryptography.X509Certificates;
 using Microsoft.Extensions.DependencyInjection;
 using Polly;
 using Polly.Extensions.Http;
+using Serilog;
 
 namespace GatewayPagamentos.IntegracoesC6;
 
@@ -32,9 +33,9 @@ public static class ServiceCollectionExtensions
             .CircuitBreakerAsync(
                 handledEventsAllowedBeforeBreaking: 5,
                 durationOfBreak: TimeSpan.FromSeconds(30),
-                onBreak: (ex, ts) => Console.WriteLine($"Breaker aberto por {ts}. Motivo: {ex}"),
-                onReset: () => Console.WriteLine("Breaker resetado"),
-                onHalfOpen: () => Console.WriteLine("Breaker em half-open"));
+                onBreak: (ex, ts) => Log.Warning(ex.Exception, "Breaker aberto por {Duration}", ts),
+                onReset: () => Log.Information("Breaker resetado"),
+                onHalfOpen: () => Log.Information("Breaker em half-open"));
 
         services.AddHttpClient("c6-auth", client =>
             {
