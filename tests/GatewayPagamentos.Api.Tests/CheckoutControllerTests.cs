@@ -1,6 +1,6 @@
 using System.Net;
 using GatewayPagamentos.Api.Controllers;
-using GatewayPagamentos.IntegracoesC6;
+using GatewayPagamentos.Api.Services;
 using GatewayPagamentos.IntegracoesC6.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -11,13 +11,14 @@ namespace GatewayPagamentos.Api.Tests;
 
 public class CheckoutControllerTests
 {
-    private static CheckoutController BuildController(
-        Mock<IC6TokenClient> tokenMock,
-        Mock<IC6CheckoutClient> checkoutMock)
+    private readonly Mock<ICheckoutAppService> _service;
+    private readonly CheckoutController _controller;
+
+    public CheckoutControllerTests()
     {
-        var controller = new CheckoutController(
-            tokenMock.Object,
-            checkoutMock.Object,
+        _service = new Mock<ICheckoutAppService>();
+        _controller = new CheckoutController(
+            _service.Object,
             NullLogger<CheckoutController>.Instance)
         {
             ControllerContext = new ControllerContext
@@ -25,80 +26,118 @@ public class CheckoutControllerTests
                 HttpContext = new DefaultHttpContext()
             }
         };
-
-        return controller;
     }
 
     [Fact]
-    public async Task Criar_RetornaCreated()
+    public async Task Criar_ComRequestValido_RetornaCreated()
     {
-        var tokenMock = new Mock<IC6TokenClient>();
-        tokenMock.Setup(t => t.ObterTokenAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new TokenResponse("access", "bearer", 3600));
+        var request = CriarRequestValido();
+        var response = new CheckoutResponse("chk-123", "url", "status");
+        _service.Setup(s => s.CriarAsync(request, It.IsAny<CancellationToken>())).ReturnsAsync(response);
 
-        var checkoutMock = new Mock<IC6CheckoutClient>();
-        checkoutMock.Setup(c => c.CriarAsync("access", It.IsAny<CheckoutCriarRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new CheckoutResponse("abc", "url", "status"));
-
-        var controller = BuildController(tokenMock, checkoutMock);
-
-        var result = await controller.Criar(new CheckoutCriarRequest(1, "desc", "ref",
-            new Pagador("n", "d", "e", "p", new Endereco("r", 1, null, "c", "s", "z")),
-            new Pagamento(null, new PixPagamento("k")),
-            "u"), CancellationToken.None);
+        var result = await _controller.Criar(request, CancellationToken.None);
 
         var created = Assert.IsType<CreatedAtActionResult>(result);
-        Assert.Equal(201, created.StatusCode);
-        Assert.Equal("Consultar", created.ActionName);
-        var response = Assert.IsType<CheckoutResponse>(created.Value);
-        Assert.Equal("abc", response.Id);
+        Assert.Equal(StatusCodes.Status201Created, created.StatusCode);
+        var body = Assert.IsType<CheckoutResponse>(created.Value);
+        Assert.Equal("chk-123", body.Id);
+        _service.Verify(s => s.CriarAsync(request, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task Consultar_IdVazio_Retorna400()
+    public async Task Criar_QuandoServiceLancaArgumentException_Retorna400()
     {
-        var controller = BuildController(new Mock<IC6TokenClient>(), new Mock<IC6CheckoutClient>());
+        var request = CriarRequestValido();
+        _service.Setup(s => s.CriarAsync(request, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new ArgumentException("Descricao obrigatória"));
 
-        var result = await controller.Consultar(string.Empty, CancellationToken.None);
+        var result = await _controller.Criar(request, CancellationToken.None);
 
         var problem = Assert.IsType<ObjectResult>(result);
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
     }
 
     [Fact]
+    public async Task Criar_QuandoServiceLancaUnauthorized_Retorna503()
+    {
+        var request = CriarRequestValido();
+        _service.Setup(s => s.CriarAsync(request, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("auth", null, HttpStatusCode.Unauthorized));
+
+        var result = await _controller.Criar(request, CancellationToken.None);
+
+        var problem = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(StatusCodes.Status503ServiceUnavailable, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task Criar_QuandoTimeout_Retorna408()
+    {
+        var request = CriarRequestValido();
+        _service.Setup(s => s.CriarAsync(request, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new OperationCanceledException("timeout"));
+
+        var result = await _controller.Criar(request, CancellationToken.None);
+
+        var problem = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(StatusCodes.Status408RequestTimeout, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task Criar_QuandoErroGenerico_Retorna500()
+    {
+        var request = CriarRequestValido();
+        _service.Setup(s => s.CriarAsync(request, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("boom"));
+
+        var result = await _controller.Criar(request, CancellationToken.None);
+
+        var problem = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(StatusCodes.Status500InternalServerError, problem.StatusCode);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task Consultar_IdInvalido_Retorna400(string id)
+    {
+        var result = await _controller.Consultar(id, CancellationToken.None);
+
+        var problem = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        _service.Verify(s => s.ConsultarAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task Consultar_NotFound_Retorna404()
     {
-        var tokenMock = new Mock<IC6TokenClient>();
-        tokenMock.Setup(t => t.ObterTokenAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new TokenResponse("access", "bearer", 3600));
-
-        var checkoutMock = new Mock<IC6CheckoutClient>();
-        checkoutMock.Setup(c => c.ConsultarAsync("access", "naoexiste", It.IsAny<CancellationToken>()))
+        _service.Setup(s => s.ConsultarAsync("naoexiste", It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("nf", null, HttpStatusCode.NotFound));
 
-        var controller = BuildController(tokenMock, checkoutMock);
-
-        var result = await controller.Consultar("naoexiste", CancellationToken.None);
+        var result = await _controller.Consultar("naoexiste", CancellationToken.None);
 
         var problem = Assert.IsType<ObjectResult>(result);
         Assert.Equal(StatusCodes.Status404NotFound, problem.StatusCode);
     }
 
     [Fact]
-    public async Task Cancelar_Ok_Retorna204()
+    public async Task Cancelar_Sucesso_Retorna204()
     {
-        var tokenMock = new Mock<IC6TokenClient>();
-        tokenMock.Setup(t => t.ObterTokenAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new TokenResponse("access", "bearer", 3600));
-
-        var checkoutMock = new Mock<IC6CheckoutClient>();
-        checkoutMock.Setup(c => c.CancelarAsync("access", "123", It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
-        var controller = BuildController(tokenMock, checkoutMock);
-
-        var result = await controller.Cancelar("123", CancellationToken.None);
+        var result = await _controller.Cancelar("123", CancellationToken.None);
 
         Assert.IsType<NoContentResult>(result);
+        _service.Verify(s => s.CancelarAsync("123", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    private static CheckoutCriarRequest CriarRequestValido()
+    {
+        return new CheckoutCriarRequest(
+            Valor: 100,
+            Descricao: "desc",
+            ReferenciaExterna: "ref",
+            Pagador: new Pagador("n", "d", "e", "p", new Endereco("r", 1, null, "c", "s", "z")),
+            Pagamento: new Pagamento(null, new PixPagamento("k")),
+            UrlRedirect: "https://callback");
     }
 }

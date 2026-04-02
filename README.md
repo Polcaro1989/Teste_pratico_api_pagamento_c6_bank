@@ -51,21 +51,23 @@ dotnet run --urls "http://localhost:5201"
 - Logging: `ILogger<CheckoutController>` com logs em validação e falhas HTTP.
 - Nomeação: versão no path (`v1`), verbo nos métodos, recurso singular no path (`checkout`).
 
-
 ## Testes
 - Stack: xUnit + Moq + Microsoft.NET.Test.Sdk
-- Projeto de testes: 	ests/GatewayPagamentos.Api.Tests
-- Escopo atual: CheckoutController (feliz e erros mapeados)
+- Projeto de testes: `tests/GatewayPagamentos.Api.Tests`
+- Escopo atual: CheckoutController (happy e erros mapeados)
 
 ### Casos cobertos
 - POST /api/v1/checkout -> 201 Created + Location
+- POST /api/v1/checkout com erro de validação -> 400
+- POST /api/v1/checkout com falha de auth (401/403) -> 503
+- POST /api/v1/checkout com timeout -> 408
+- POST /api/v1/checkout erro inesperado -> 500
 - GET /api/v1/checkout/{id} com id vazio -> 400
 - GET /api/v1/checkout/{id} quando C6 retorna 404 -> 404
 - PUT /api/v1/checkout/{id}/cancelar sucesso -> 204
 
 ### Como rodar
-`ash
+```bash
 dotnet test
-`
+```
 (Requer .NET 10 SDK; nenhum serviço externo é chamado, tudo mockado.)
-
