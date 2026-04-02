@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using GatewayPagamentos.Api.Exceptions;
 using GatewayPagamentos.Api.Health;
 using GatewayPagamentos.Api.Middleware;
 using GatewayPagamentos.Api.Services;
@@ -32,6 +33,8 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddC6Clients(c6Settings);
 builder.Services.AddScoped<ICheckoutAppService, CheckoutAppService>();
 builder.Services.AddValidatorsFromAssemblyContaining<CheckoutCriarValidator>();
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddHealthChecks()
     .AddCheck<C6HealthCheck>("c6");
 
@@ -39,6 +42,7 @@ var app = builder.Build();
 
 app.UseSerilogRequestLogging();
 app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())
 {
