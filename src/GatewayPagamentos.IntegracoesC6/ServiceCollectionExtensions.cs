@@ -12,8 +12,8 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddC6Clients(this IServiceCollection services, C6Settings settings)
     {
         services.AddSingleton(settings);
-        services.AddScoped<C6TokenClient>();
-        services.AddScoped<C6CheckoutClient>();
+        services.AddScoped<IC6TokenClient, C6TokenClient>();
+        services.AddScoped<IC6CheckoutClient, C6CheckoutClient>();
 
         var retryPolicy = HttpPolicyExtensions
             .HandleTransientHttpError()
