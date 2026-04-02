@@ -30,13 +30,16 @@ public static class ServiceCollectionExtensions
             .Handle<HttpRequestException>()
             .OrResult<HttpResponseMessage>(r => (int)r.StatusCode >= 500)
             .CircuitBreakerAsync(
-                handledEventsAllowedBeforeBreaking: 3,
-                durationOfBreak: TimeSpan.FromSeconds(15));
+                handledEventsAllowedBeforeBreaking: 5,
+                durationOfBreak: TimeSpan.FromSeconds(30),
+                onBreak: (ex, ts) => Console.WriteLine($"Breaker aberto por {ts}. Motivo: {ex}"),
+                onReset: () => Console.WriteLine("Breaker resetado"),
+                onHalfOpen: () => Console.WriteLine("Breaker em half-open"));
 
         services.AddHttpClient("c6-auth", client =>
             {
                 client.BaseAddress = new Uri(settings.TokenUrl);
-                client.Timeout = TimeSpan.FromSeconds(15);
+                client.Timeout = TimeSpan.FromSeconds(20);
             })
             .ConfigurePrimaryHttpMessageHandler(() => BuildHandler(settings))
             .AddPolicyHandler(retryPolicy)
@@ -45,7 +48,7 @@ public static class ServiceCollectionExtensions
         services.AddHttpClient("c6-api", client =>
             {
                 client.BaseAddress = new Uri(settings.BaseUrl);
-                client.Timeout = TimeSpan.FromSeconds(15);
+                client.Timeout = TimeSpan.FromSeconds(20);
             })
             .ConfigurePrimaryHttpMessageHandler(() => BuildHandler(settings))
             .AddPolicyHandler(retryPolicy)

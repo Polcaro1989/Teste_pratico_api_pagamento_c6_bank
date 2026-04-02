@@ -1,5 +1,10 @@
 ﻿using System.Text.Json;
+using FluentValidation;
+using FluentValidation.AspNetCore;
+using GatewayPagamentos.Api.Health;
+using GatewayPagamentos.Api.Middleware;
 using GatewayPagamentos.Api.Services;
+using GatewayPagamentos.Api.Validators;
 using GatewayPagamentos.IntegracoesC6;
 using Microsoft.OpenApi.Models;
 using Serilog;
@@ -15,7 +20,8 @@ var c6Settings = builder.Configuration.GetSection("C6").Get<C6Settings>()
                  ?? throw new InvalidOperationException("Seção 'C6' ausente em appsettings.json");
 
 builder.Services.AddControllers()
-    .AddJsonOptions(opts => opts.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase);
+    .AddJsonOptions(opts => opts.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase)
+    .AddFluentValidation();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -24,10 +30,14 @@ builder.Services.AddSwaggerGen(c =>
 
 builder.Services.AddC6Clients(c6Settings);
 builder.Services.AddScoped<ICheckoutAppService, CheckoutAppService>();
+builder.Services.AddValidatorsFromAssemblyContaining<CheckoutCriarValidator>();
+builder.Services.AddHealthChecks()
+    .AddCheck<C6HealthCheck>("c6");
 
 var app = builder.Build();
 
 app.UseSerilogRequestLogging();
+app.UseMiddleware<CorrelationIdMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
@@ -42,5 +52,6 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHealthChecks("/health");
 
 app.Run();
