@@ -26,21 +26,30 @@ public static class ServiceCollectionExtensions
                     return TimeSpan.FromMilliseconds(200 * attempt + jitter);
                 });
 
+        var breakerPolicy = Policy
+            .Handle<HttpRequestException>()
+            .OrResult<HttpResponseMessage>(r => (int)r.StatusCode >= 500)
+            .CircuitBreakerAsync(
+                handledEventsAllowedBeforeBreaking: 3,
+                durationOfBreak: TimeSpan.FromSeconds(15));
+
         services.AddHttpClient("c6-auth", client =>
             {
                 client.BaseAddress = new Uri(settings.TokenUrl);
-                client.Timeout = TimeSpan.FromSeconds(30);
+                client.Timeout = TimeSpan.FromSeconds(15);
             })
             .ConfigurePrimaryHttpMessageHandler(() => BuildHandler(settings))
-            .AddPolicyHandler(retryPolicy);
+            .AddPolicyHandler(retryPolicy)
+            .AddPolicyHandler(breakerPolicy);
 
         services.AddHttpClient("c6-api", client =>
             {
                 client.BaseAddress = new Uri(settings.BaseUrl);
-                client.Timeout = TimeSpan.FromSeconds(30);
+                client.Timeout = TimeSpan.FromSeconds(15);
             })
             .ConfigurePrimaryHttpMessageHandler(() => BuildHandler(settings))
-            .AddPolicyHandler(retryPolicy);
+            .AddPolicyHandler(retryPolicy)
+            .AddPolicyHandler(breakerPolicy);
 
         return services;
     }
