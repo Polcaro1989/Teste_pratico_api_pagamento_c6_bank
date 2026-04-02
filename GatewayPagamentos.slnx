@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/GatewayPagamentos.Api/GatewayPagamentos.Api.csproj" />
+    <Project Path="src/GatewayPagamentos.IntegracoesC6/GatewayPagamentos.IntegracoesC6.csproj" />
+  </Folder>
+</Solution>
