@@ -44,7 +44,8 @@ dotnet run --urls "http://localhost:5201"
 ## Checkout Controller (implementado)
 - Rota base: `api/v1/checkout`
 - Endpoints: POST (criar, 201 + Location), POST autorizar (200), GET {id} (200/404), PUT {id}/cancelar (204/404).
-- DTOs: `CheckoutCriarRequest`, `CheckoutAutorizarRequest`, `CheckoutResponse` e aninhados (`Pagador`, `Endereco`, `Pagamento`, `Cartao`, `PixPagamento`, `InfoCartao`).
+- DTOs da API: `CreateCheckoutRequestDto`, `AuthorizeCheckoutRequestDto`, `CheckoutResponseDto` e aninhados (`PayerDto`, `AddressDto`, `PaymentDto`, `CardDto`, `PixPaymentDto`, `CardInfoDto`).
+- Contratos da API separados da integracao C6: DTOs em `src/GatewayPagamentos.Api/Contracts` e mapeamento Anti-Corruption Layer em `src/GatewayPagamentos.Api/Mappers/C6CheckoutMapper.cs`.
 - Validação: `id` obrigatório em GET/PUT; requisições inválidas do C6 retornam 400; 404 mapeado quando o C6 responde NotFound.
 - Status codes: 201 Created (criação), 200 OK (consulta/autorizar), 204 NoContent (cancelar), 400/404 conforme erro.
 - Tratamento de erros: captura `HttpRequestException` e mapeia para `ProblemDetails`, logando warnings (400) e errors (demais status).

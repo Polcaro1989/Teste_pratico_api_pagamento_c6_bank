@@ -1,62 +1,108 @@
-using FluentValidation;
-using GatewayPagamentos.IntegracoesC6.Models;
+﻿using FluentValidation;
+using GatewayPagamentos.Api.Contracts;
 
 namespace GatewayPagamentos.Api.Validators;
 
-public sealed class CheckoutCriarValidator : AbstractValidator<CheckoutCriarRequest>
+public sealed class CheckoutCriarValidator : AbstractValidator<CreateCheckoutRequestDto>
 {
     public CheckoutCriarValidator()
     {
-        RuleFor(x => x.Valor).GreaterThan(0);
-        RuleFor(x => x.Descricao).NotEmpty();
-        RuleFor(x => x.ReferenciaExterna).NotEmpty();
-        RuleFor(x => x.UrlRedirect).NotEmpty();
-        RuleFor(x => x.Pagador).SetValidator(new PagadorValidator());
-        RuleFor(x => x.Pagamento).SetValidator(new PagamentoValidator());
+        RuleFor(x => x.Amount).GreaterThan(0);
+        RuleFor(x => x.Description).NotEmpty();
+        RuleFor(x => x.ExternalReferenceId).NotEmpty();
+        RuleFor(x => x.RedirectUrl).NotEmpty();
+        RuleFor(x => x.Payer).SetValidator(new PayerValidator());
+        RuleFor(x => x.Payment).SetValidator(new PaymentValidator());
     }
 }
 
-public sealed class CheckoutAutorizarValidator : AbstractValidator<CheckoutAutorizarRequest>
+public sealed class CheckoutAutorizarValidator : AbstractValidator<AuthorizeCheckoutRequestDto>
 {
     public CheckoutAutorizarValidator()
     {
-        RuleFor(x => x.Valor).GreaterThan(0);
-        RuleFor(x => x.Descricao).NotEmpty();
-        RuleFor(x => x.ReferenciaExterna).NotEmpty();
-        RuleFor(x => x.UrlRedirect).NotEmpty();
-        RuleFor(x => x.Pagador).SetValidator(new PagadorValidator());
-        RuleFor(x => x.Pagamento).SetValidator(new PagamentoValidator());
+        RuleFor(x => x.Amount).GreaterThan(0);
+        RuleFor(x => x.Description).NotEmpty();
+        RuleFor(x => x.ExternalReferenceId).NotEmpty();
+        RuleFor(x => x.RedirectUrl).NotEmpty();
+        RuleFor(x => x.Payer).SetValidator(new PayerValidator());
+        RuleFor(x => x.Payment).SetValidator(new PaymentValidator());
     }
 }
 
-public sealed class PagadorValidator : AbstractValidator<Pagador>
+public sealed class PayerValidator : AbstractValidator<PayerDto>
 {
-    public PagadorValidator()
+    public PayerValidator()
     {
-        RuleFor(x => x.Nome).NotEmpty();
-        RuleFor(x => x.Documento).NotEmpty();
-        RuleFor(x => x.Email).NotEmpty();
-        RuleFor(x => x.Endereco).SetValidator(new EnderecoValidator());
+        RuleFor(x => x.Name).NotEmpty();
+        RuleFor(x => x.TaxId).NotEmpty();
+        RuleFor(x => x.Email).NotEmpty().EmailAddress();
+        RuleFor(x => x.PhoneNumber)
+            .NotEmpty()
+            .Matches(@"^\+?[0-9]{10,15}$")
+            .WithMessage("PhoneNumber invalido");
+        RuleFor(x => x.Address).SetValidator(new AddressValidator());
     }
 }
 
-public sealed class EnderecoValidator : AbstractValidator<Endereco>
+public sealed class AddressValidator : AbstractValidator<AddressDto>
 {
-    public EnderecoValidator()
+    public AddressValidator()
     {
-        RuleFor(x => x.Logradouro).NotEmpty();
-        RuleFor(x => x.Numero).GreaterThan(0);
-        RuleFor(x => x.Cidade).NotEmpty();
-        RuleFor(x => x.Estado).NotEmpty();
-        RuleFor(x => x.Cep).NotEmpty();
+        RuleFor(x => x.Street).NotEmpty();
+        RuleFor(x => x.Number).GreaterThan(0);
+        RuleFor(x => x.City).NotEmpty();
+        RuleFor(x => x.State).NotEmpty();
+        RuleFor(x => x.ZipCode).NotEmpty();
     }
 }
 
-public sealed class PagamentoValidator : AbstractValidator<Pagamento>
+public sealed class PaymentValidator : AbstractValidator<PaymentDto>
 {
-    public PagamentoValidator()
+    public PaymentValidator()
     {
-        RuleFor(x => x).Must(p => p.Cartao is not null || p.Pix is not null)
-            .WithMessage("Informe cartão ou pix");
+        RuleFor(x => x).Must(p => p.Card is not null || p.Pix is not null)
+            .WithMessage("Informe cartao ou pix");
+
+        When(x => x.Card is not null, () =>
+        {
+            RuleFor(x => x.Card!).SetValidator(new CardValidator());
+        });
+
+        When(x => x.Pix is not null, () =>
+        {
+            RuleFor(x => x.Pix!).SetValidator(new PixPaymentValidator());
+        });
+    }
+}
+
+public sealed class CardValidator : AbstractValidator<CardDto>
+{
+    public CardValidator()
+    {
+        RuleFor(x => x.Authenticate).NotEmpty();
+        RuleFor(x => x.Installments).GreaterThan(0);
+        RuleFor(x => x.InterestType).NotEmpty();
+        RuleFor(x => x.Type).NotEmpty();
+
+        When(x => x.CardInfo is not null, () =>
+        {
+            RuleFor(x => x.CardInfo!).SetValidator(new CardInfoValidator());
+        });
+    }
+}
+
+public sealed class CardInfoValidator : AbstractValidator<CardInfoDto>
+{
+    public CardInfoValidator()
+    {
+        RuleFor(x => x.Token).NotEmpty();
+    }
+}
+
+public sealed class PixPaymentValidator : AbstractValidator<PixPaymentDto>
+{
+    public PixPaymentValidator()
+    {
+        RuleFor(x => x.Key).NotEmpty();
     }
 }

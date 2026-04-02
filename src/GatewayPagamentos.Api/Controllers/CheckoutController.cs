@@ -1,6 +1,6 @@
 ﻿using System.Net;
+using GatewayPagamentos.Api.Contracts;
 using GatewayPagamentos.Api.Services;
-using GatewayPagamentos.IntegracoesC6.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -22,12 +22,12 @@ public sealed class CheckoutController : ControllerBase
     }
 
     [HttpPost]
-    [ProducesResponseType(typeof(CheckoutResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(CheckoutResponseDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status408RequestTimeout)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> Criar(
-        [FromBody] CheckoutCriarRequest request,
+        [FromBody] CreateCheckoutRequestDto request,
         CancellationToken ct)
     {
         try
@@ -37,18 +37,18 @@ public sealed class CheckoutController : ControllerBase
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Requisição inválida ao criar checkout. Ref={Ref} Valor={Valor}", request.ReferenciaExterna, request.Valor);
-            return Problem(title: "Requisição inválida", detail: ex.Message, statusCode: StatusCodes.Status400BadRequest);
+            _logger.LogWarning(ex, "Requisicao invalida ao criar checkout. Ref={Ref} Valor={Valor}", request.ExternalReferenceId, request.Amount);
+            return Problem(title: "Requisicao invalida", detail: ex.Message, statusCode: StatusCodes.Status400BadRequest);
         }
         catch (HttpRequestException ex) when (ex.StatusCode is HttpStatusCode.BadRequest)
         {
-            _logger.LogWarning(ex, "C6 rejeitou criação de checkout. Ref={Ref}", request.ReferenciaExterna);
-            return Problem(title: "Requisição inválida", statusCode: StatusCodes.Status400BadRequest);
+            _logger.LogWarning(ex, "C6 rejeitou criacao de checkout. Ref={Ref}", request.ExternalReferenceId);
+            return Problem(title: "Requisicao invalida", statusCode: StatusCodes.Status400BadRequest);
         }
         catch (HttpRequestException ex) when (ex.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
         {
-            _logger.LogError(ex, "Falha de autenticação com C6 na criação. Ref={Ref}", request.ReferenciaExterna);
-            return Problem(title: "Erro de autenticação com provedor", statusCode: StatusCodes.Status503ServiceUnavailable);
+            _logger.LogError(ex, "Falha de autenticacao com C6 na criacao. Ref={Ref}", request.ExternalReferenceId);
+            return Problem(title: "Erro de autenticacao com provedor", statusCode: StatusCodes.Status503ServiceUnavailable);
         }
         catch (HttpRequestException ex) when (ex.StatusCode.HasValue)
         {
@@ -61,23 +61,23 @@ public sealed class CheckoutController : ControllerBase
         }
         catch (OperationCanceledException ex)
         {
-            _logger.LogWarning(ex, "Criação de checkout cancelada/timeout. Ref={Ref}", request.ReferenciaExterna);
-            return Problem(title: "Requisição expirou", statusCode: StatusCodes.Status408RequestTimeout);
+            _logger.LogWarning(ex, "Criacao de checkout cancelada/timeout. Ref={Ref}", request.ExternalReferenceId);
+            return Problem(title: "Requisicao expirou", statusCode: StatusCodes.Status408RequestTimeout);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Erro inesperado ao criar checkout. Ref={Ref}", request.ReferenciaExterna);
+            _logger.LogError(ex, "Erro inesperado ao criar checkout. Ref={Ref}", request.ExternalReferenceId);
             return Problem(title: "Erro interno do servidor", statusCode: StatusCodes.Status500InternalServerError);
         }
     }
 
     [HttpPost("autorizar")]
-    [ProducesResponseType(typeof(CheckoutResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(CheckoutResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status408RequestTimeout)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> Autorizar(
-        [FromBody] CheckoutAutorizarRequest request,
+        [FromBody] AuthorizeCheckoutRequestDto request,
         CancellationToken ct)
     {
         try
@@ -87,18 +87,18 @@ public sealed class CheckoutController : ControllerBase
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Requisição inválida ao autorizar checkout. Ref={Ref} Valor={Valor}", request.ReferenciaExterna, request.Valor);
-            return Problem(title: "Requisição inválida", detail: ex.Message, statusCode: StatusCodes.Status400BadRequest);
+            _logger.LogWarning(ex, "Requisicao invalida ao autorizar checkout. Ref={Ref} Valor={Valor}", request.ExternalReferenceId, request.Amount);
+            return Problem(title: "Requisicao invalida", detail: ex.Message, statusCode: StatusCodes.Status400BadRequest);
         }
         catch (HttpRequestException ex) when (ex.StatusCode is HttpStatusCode.BadRequest)
         {
-            _logger.LogWarning(ex, "Erro de validação ao autorizar checkout");
-            return Problem(title: "Requisição inválida", statusCode: StatusCodes.Status400BadRequest);
+            _logger.LogWarning(ex, "Erro de validacao ao autorizar checkout");
+            return Problem(title: "Requisicao invalida", statusCode: StatusCodes.Status400BadRequest);
         }
         catch (HttpRequestException ex) when (ex.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
         {
-            _logger.LogError(ex, "Falha de autenticação com C6 na autorização. Ref={Ref}", request.ReferenciaExterna);
-            return Problem(title: "Erro de autenticação com provedor", statusCode: StatusCodes.Status503ServiceUnavailable);
+            _logger.LogError(ex, "Falha de autenticacao com C6 na autorizacao. Ref={Ref}", request.ExternalReferenceId);
+            return Problem(title: "Erro de autenticacao com provedor", statusCode: StatusCodes.Status503ServiceUnavailable);
         }
         catch (HttpRequestException ex) when (ex.StatusCode.HasValue)
         {
@@ -111,18 +111,18 @@ public sealed class CheckoutController : ControllerBase
         }
         catch (OperationCanceledException ex)
         {
-            _logger.LogWarning(ex, "Autorização de checkout cancelada/timeout. Ref={Ref}", request.ReferenciaExterna);
-            return Problem(title: "Requisição expirou", statusCode: StatusCodes.Status408RequestTimeout);
+            _logger.LogWarning(ex, "Autorizacao de checkout cancelada/timeout. Ref={Ref}", request.ExternalReferenceId);
+            return Problem(title: "Requisicao expirou", statusCode: StatusCodes.Status408RequestTimeout);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Erro inesperado ao autorizar checkout. Ref={Ref}", request.ReferenciaExterna);
+            _logger.LogError(ex, "Erro inesperado ao autorizar checkout. Ref={Ref}", request.ExternalReferenceId);
             return Problem(title: "Erro interno do servidor", statusCode: StatusCodes.Status500InternalServerError);
         }
     }
 
     [HttpGet("{id}")]
-    [ProducesResponseType(typeof(CheckoutResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(CheckoutResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status408RequestTimeout)]
@@ -130,7 +130,7 @@ public sealed class CheckoutController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(id))
         {
-            return Problem(title: "Id obrigatório", statusCode: StatusCodes.Status400BadRequest);
+            return Problem(title: "Id obrigatorio", statusCode: StatusCodes.Status400BadRequest);
         }
 
         try
@@ -140,13 +140,13 @@ public sealed class CheckoutController : ControllerBase
         }
         catch (HttpRequestException ex) when (ex.StatusCode is HttpStatusCode.NotFound)
         {
-            _logger.LogInformation("Checkout não encontrado: {Id}", id);
-            return Problem(title: "Checkout não encontrado", statusCode: StatusCodes.Status404NotFound);
+            _logger.LogInformation("Checkout nao encontrado: {Id}", id);
+            return Problem(title: "Checkout nao encontrado", statusCode: StatusCodes.Status404NotFound);
         }
         catch (HttpRequestException ex) when (ex.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
         {
-            _logger.LogError(ex, "Falha de autenticação com C6 na consulta. Id={Id}", id);
-            return Problem(title: "Erro de autenticação com provedor", statusCode: StatusCodes.Status503ServiceUnavailable);
+            _logger.LogError(ex, "Falha de autenticacao com C6 na consulta. Id={Id}", id);
+            return Problem(title: "Erro de autenticacao com provedor", statusCode: StatusCodes.Status503ServiceUnavailable);
         }
         catch (HttpRequestException ex) when (ex.StatusCode.HasValue)
         {
@@ -160,7 +160,7 @@ public sealed class CheckoutController : ControllerBase
         catch (OperationCanceledException ex)
         {
             _logger.LogWarning(ex, "Consulta de checkout cancelada/timeout. Id={Id}", id);
-            return Problem(title: "Requisição expirou", statusCode: StatusCodes.Status408RequestTimeout);
+            return Problem(title: "Requisicao expirou", statusCode: StatusCodes.Status408RequestTimeout);
         }
         catch (Exception ex)
         {
@@ -178,7 +178,7 @@ public sealed class CheckoutController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(id))
         {
-            return Problem(title: "Id obrigatório", statusCode: StatusCodes.Status400BadRequest);
+            return Problem(title: "Id obrigatorio", statusCode: StatusCodes.Status400BadRequest);
         }
 
         try
@@ -188,13 +188,13 @@ public sealed class CheckoutController : ControllerBase
         }
         catch (HttpRequestException ex) when (ex.StatusCode is HttpStatusCode.NotFound)
         {
-            _logger.LogInformation("Checkout não encontrado para cancelamento: {Id}", id);
-            return Problem(title: "Checkout não encontrado", statusCode: StatusCodes.Status404NotFound);
+            _logger.LogInformation("Checkout nao encontrado para cancelamento: {Id}", id);
+            return Problem(title: "Checkout nao encontrado", statusCode: StatusCodes.Status404NotFound);
         }
         catch (HttpRequestException ex) when (ex.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
         {
-            _logger.LogError(ex, "Falha de autenticação com C6 ao cancelar. Id={Id}", id);
-            return Problem(title: "Erro de autenticação com provedor", statusCode: StatusCodes.Status503ServiceUnavailable);
+            _logger.LogError(ex, "Falha de autenticacao com C6 ao cancelar. Id={Id}", id);
+            return Problem(title: "Erro de autenticacao com provedor", statusCode: StatusCodes.Status503ServiceUnavailable);
         }
         catch (HttpRequestException ex) when (ex.StatusCode.HasValue)
         {
@@ -208,7 +208,7 @@ public sealed class CheckoutController : ControllerBase
         catch (OperationCanceledException ex)
         {
             _logger.LogWarning(ex, "Cancelamento de checkout cancelado/timeout. Id={Id}", id);
-            return Problem(title: "Requisição expirou", statusCode: StatusCodes.Status408RequestTimeout);
+            return Problem(title: "Requisicao expirou", statusCode: StatusCodes.Status408RequestTimeout);
         }
         catch (Exception ex)
         {

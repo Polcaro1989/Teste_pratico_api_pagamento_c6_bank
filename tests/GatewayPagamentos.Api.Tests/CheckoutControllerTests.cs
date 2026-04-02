@@ -1,11 +1,12 @@
-using System.Net;
+﻿using System.Net;
+using GatewayPagamentos.Api.Contracts;
 using GatewayPagamentos.Api.Controllers;
 using GatewayPagamentos.Api.Services;
-using GatewayPagamentos.IntegracoesC6.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using Xunit;
 
 namespace GatewayPagamentos.Api.Tests;
 
@@ -32,14 +33,14 @@ public class CheckoutControllerTests
     public async Task Criar_ComRequestValido_RetornaCreated()
     {
         var request = CriarRequestValido();
-        var response = new CheckoutResponse("chk-123", "url", "status");
+        var response = new CheckoutResponseDto("chk-123", "url", "status");
         _service.Setup(s => s.CriarAsync(request, It.IsAny<CancellationToken>())).ReturnsAsync(response);
 
         var result = await _controller.Criar(request, CancellationToken.None);
 
         var created = Assert.IsType<CreatedAtActionResult>(result);
         Assert.Equal(StatusCodes.Status201Created, created.StatusCode);
-        var body = Assert.IsType<CheckoutResponse>(created.Value);
+        var body = Assert.IsType<CheckoutResponseDto>(created.Value);
         Assert.Equal("chk-123", body.Id);
         _service.Verify(s => s.CriarAsync(request, It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -49,7 +50,7 @@ public class CheckoutControllerTests
     {
         var request = CriarRequestValido();
         _service.Setup(s => s.CriarAsync(request, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new ArgumentException("Descricao obrigatória"));
+            .ThrowsAsync(new ArgumentException("Descricao obrigatoria"));
 
         var result = await _controller.Criar(request, CancellationToken.None);
 
@@ -130,14 +131,21 @@ public class CheckoutControllerTests
         _service.Verify(s => s.CancelarAsync("123", It.IsAny<CancellationToken>()), Times.Once);
     }
 
-    private static CheckoutCriarRequest CriarRequestValido()
+    private static CreateCheckoutRequestDto CriarRequestValido()
     {
-        return new CheckoutCriarRequest(
-            Valor: 100,
-            Descricao: "desc",
-            ReferenciaExterna: "ref",
-            Pagador: new Pagador("n", "d", "e", "p", new Endereco("r", 1, null, "c", "s", "z")),
-            Pagamento: new Pagamento(null, new PixPagamento("k")),
-            UrlRedirect: "https://callback");
+        return new CreateCheckoutRequestDto(
+            Amount: 100,
+            Description: "desc",
+            ExternalReferenceId: "ref",
+            Payer: new PayerDto(
+                Name: "n",
+                TaxId: "d",
+                Email: "dev@teste.com",
+                PhoneNumber: "+5511999999999",
+                Address: new AddressDto("r", 1, null, "c", "s", "z")),
+            Payment: new PaymentDto(
+                Card: null,
+                Pix: new PixPaymentDto("k")),
+            RedirectUrl: "https://callback");
     }
 }
