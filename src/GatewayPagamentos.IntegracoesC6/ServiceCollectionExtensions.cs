@@ -13,7 +13,8 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddC6Clients(this IServiceCollection services, C6Settings settings)
     {
         services.AddSingleton(settings);
-        services.AddScoped<IC6TokenClient, C6TokenClient>();
+        services.AddMemoryCache();
+        services.AddSingleton<IC6TokenClient, C6TokenClient>();
         services.AddScoped<IC6CheckoutClient, C6CheckoutClient>();
 
         var retryPolicy = HttpPolicyExtensions
@@ -95,10 +96,15 @@ public static class ServiceCollectionExtensions
             throw new InvalidOperationException(
                 $"Certificado não encontrado em '{certPath}'. Configure C6__ClientCertificatePath/C6__ClientCertificatePassword.");
         }
+        else if (isDevelopment && settings.AllowInsecureServerCertificateInDevelopment)
+        {
+            handler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+        }
         else
         {
-            // Ambiente de desenvolvimento sem certificado: permite subir API/Swagger.
-            handler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+            throw new InvalidOperationException(
+                $"Certificado não encontrado em '{certPath}'. Configure C6__ClientCertificatePath/C6__ClientCertificatePassword. " +
+                "Para bypass local em Development, habilite C6__AllowInsecureServerCertificateInDevelopment=true.");
         }
 
         return handler;

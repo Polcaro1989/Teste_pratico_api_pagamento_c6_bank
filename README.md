@@ -31,6 +31,9 @@ dotnet run --urls "http://localhost:5201"
   dotnet user-secrets set "C6:ClientCertificatePassword" "senha"
   ```
 - Em produção, use variáveis de ambiente (`C6__ClientId`, `C6__ClientSecret`, etc.).
+- O bypass inseguro de TLS em desenvolvimento agora é **opt-in explícito**:
+  - `C6__AllowInsecureServerCertificateInDevelopment=true`
+  - Use somente em ambiente local e temporariamente.
 
 ## Swagger / OpenAPI
 - UI: `http://localhost:5201/swagger`
@@ -55,17 +58,29 @@ dotnet run --urls "http://localhost:5201"
 ## Testes
 - Stack: xUnit + Moq + Microsoft.NET.Test.Sdk
 - Projeto de testes: `tests/GatewayPagamentos.Api.Tests`
-- Escopo atual: CheckoutController (happy e erros mapeados)
+- Escopo atual: Controller, camada de aplicação, mapper, validações e integração de token/health check (com mocks/fakes)
 
 ### Casos cobertos
-- POST /api/v1/checkout -> 201 Created + Location
-- POST /api/v1/checkout com erro de validação -> 400
-- POST /api/v1/checkout com falha de auth (401/403) -> 503
-- POST /api/v1/checkout com timeout -> 408
-- POST /api/v1/checkout erro inesperado -> 500
-- GET /api/v1/checkout/{id} com id vazio -> 400
-- GET /api/v1/checkout/{id} quando C6 retorna 404 -> 404
-- PUT /api/v1/checkout/{id}/cancelar sucesso -> 204
+- `CheckoutControllerTests`
+  - POST `/api/v1/checkout` -> `201 Created`
+  - POST `/api/v1/checkout/autorizar` -> `200 OK`
+  - GET `/api/v1/checkout/{id}` -> `200 OK`
+  - PUT `/api/v1/checkout/{id}/cancelar` -> `204 NoContent`
+  - propagação de exceção HTTP do serviço
+- `CheckoutAppServiceTests`
+  - mapeamento + orquestração de token/cliente C6 em criar/autorizar/consultar
+  - validação de argumento (`id`) em consultar/cancelar
+- `C6CheckoutMapperTests`
+  - mapeamento de request API -> C6 e response C6 -> API
+- `CheckoutValidatorsTests`
+  - CPF/CNPJ válidos
+  - rejeição de `TaxId`, `ZipCode` e `State` inválidos
+- `C6TokenClientTests`
+  - reuso de token em cache
+  - renovação automática após expiração segura
+- `C6HealthCheckTests`
+  - throttle de chamadas de autenticação em probes frequentes
+  - retorno `Unhealthy` quando auth falha
 
 ### Como rodar
 ```bash
