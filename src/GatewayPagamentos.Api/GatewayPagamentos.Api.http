@@ -1,6 +1,69 @@
 @GatewayPagamentos.Api_HostAddress = http://localhost:5163
 
-GET {{GatewayPagamentos.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+POST {{GatewayPagamentos.Api_HostAddress}}/v1/checkouts
+Content-Type: application/json
+
+{
+  "amount": 100.50,
+  "description": "pedido teste",
+  "external_reference_id": "ref-123",
+  "payer": {
+    "name": "Cliente Teste",
+    "tax_id": "52998224725",
+    "email": "cliente@teste.com",
+    "phone_number": "+5511999999999",
+    "address": {
+      "street": "Av Paulista",
+      "number": 1000,
+      "city": "Sao Paulo",
+      "state": "SP",
+      "zip_code": "01311-000"
+    }
+  },
+  "payment": {
+    "pix": {
+      "key": "pix-key"
+    }
+  },
+  "redirect_url": "https://exemplo.com/callback"
+}
 
 ###
+
+POST {{GatewayPagamentos.Api_HostAddress}}/v1/checkouts/authorize
+Content-Type: application/json
+
+{
+  "amount": 100.50,
+  "description": "pedido teste",
+  "external_reference_id": "ref-123",
+  "payer": {
+    "name": "Cliente Teste",
+    "tax_id": "52998224725",
+    "email": "cliente@teste.com",
+    "phone_number": "+5511999999999",
+    "address": {
+      "street": "Av Paulista",
+      "number": 1000,
+      "city": "Sao Paulo",
+      "state": "SP",
+      "zip_code": "01311-000"
+    }
+  },
+  "payment": {
+    "card": {
+      "authenticate": "3DS",
+      "capture": true,
+      "fixed_installments": false,
+      "installments": 1,
+      "interest_type": "NONE",
+      "recurrent": false,
+      "save_card": false,
+      "type": "CREDIT",
+      "card_info": {
+        "token": "card-token"
+      }
+    }
+  },
+  "redirect_url": "https://exemplo.com/callback"
+}

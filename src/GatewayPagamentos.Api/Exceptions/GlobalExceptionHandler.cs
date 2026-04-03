@@ -27,7 +27,7 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
             Detail = detail,
             Instance = httpContext.Request.Path
         };
-        problem.Extensions["traceId"] = httpContext.TraceIdentifier;
+        problem.Extensions["trace_id"] = httpContext.TraceIdentifier;
 
         httpContext.Response.StatusCode = statusCode;
         await httpContext.Response.WriteAsJsonAsync(problem, cancellationToken);

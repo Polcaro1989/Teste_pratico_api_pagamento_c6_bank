@@ -1,3 +1,4 @@
 ﻿# Build artifacts
 bin/
 obj/
+checkout-collection.json

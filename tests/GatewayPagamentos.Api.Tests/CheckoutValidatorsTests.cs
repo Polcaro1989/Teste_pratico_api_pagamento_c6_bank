@@ -42,6 +42,58 @@ public class CheckoutValidatorsTests
         Assert.Contains("Payer.Address.State", fields);
     }
 
+    [Fact]
+    public void Validate_ComCardEPixJuntos_DeveFalhar()
+    {
+        var request = CriarRequest("52998224725", "01311000", "SP") with
+        {
+            Payment = new PaymentDto(
+                Card: new CardDto(
+                    Authenticate: "3DS",
+                    Capture: true,
+                    FixedInstallments: false,
+                    Installments: 1,
+                    InterestType: "NONE",
+                    Recurrent: false,
+                    SaveCard: false,
+                    Type: "CREDIT",
+                    SoftDescriptor: null,
+                    CardInfo: new CardInfoDto("tok")),
+                Pix: new PixPaymentDto("pix-key"))
+        };
+
+        var result = _validator.Validate(request);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.PropertyName == "Payment");
+    }
+
+    [Fact]
+    public void Validate_ComCardSemCardInfo_DeveFalhar()
+    {
+        var request = CriarRequest("52998224725", "01311000", "SP") with
+        {
+            Payment = new PaymentDto(
+                Card: new CardDto(
+                    Authenticate: "3DS",
+                    Capture: true,
+                    FixedInstallments: false,
+                    Installments: 1,
+                    InterestType: "NONE",
+                    Recurrent: false,
+                    SaveCard: false,
+                    Type: "CREDIT",
+                    SoftDescriptor: null,
+                    CardInfo: null),
+                Pix: null)
+        };
+
+        var result = _validator.Validate(request);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.PropertyName == "Payment.Card.CardInfo");
+    }
+
     private static CreateCheckoutRequestDto CriarRequest(string taxId, string zipCode, string state)
     {
         return new CreateCheckoutRequestDto(

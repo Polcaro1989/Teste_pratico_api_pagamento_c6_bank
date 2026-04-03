@@ -45,11 +45,13 @@ dotnet run --urls "http://localhost:5201"
 - Credenciais e certificado mTLS fornecidos pelo C6 Bank (sandbox ou produção).
 
 ## Checkout Controller (implementado)
-- Rota base: `api/v1/checkout`
-- Endpoints: POST (criar, 201 + Location), POST autorizar (200), GET {id} (200/404), PUT {id}/cancelar (204/404).
+- Rota base: `v1/checkouts` (espelhando o C6)
+- Endpoints: POST (criar, 201 + Location), POST `authorize` (200), GET `{id}` (200/404), PUT `{id}/cancel` (204/404).
 - DTOs da API: `CreateCheckoutRequestDto`, `AuthorizeCheckoutRequestDto`, `CheckoutResponseDto` e aninhados (`PayerDto`, `AddressDto`, `PaymentDto`, `CardDto`, `PixPaymentDto`, `CardInfoDto`).
 - Contratos da API separados da integracao C6: DTOs em `src/GatewayPagamentos.Api/Contracts` e mapeamento Anti-Corruption Layer em `src/GatewayPagamentos.Api/Mappers/C6CheckoutMapper.cs`.
+- Serialização JSON na borda da API em `snake_case` para espelhar o payload do C6 (`external_reference_id`, `phone_number`, `card_info`, etc.).
 - Validação: `id` obrigatório em GET/PUT; requisições inválidas do C6 retornam 400; 404 mapeado quando o C6 responde NotFound.
+- Regra de pagamento: exatamente um método por request (`card` XOR `pix`).
 - Status codes: 201 Created (criação), 200 OK (consulta/autorizar), 204 NoContent (cancelar), 400/404 conforme erro.
 - Tratamento de erros: captura `HttpRequestException` e mapeia para `ProblemDetails`, logando warnings (400) e errors (demais status).
 - Logging: `ILogger<CheckoutController>` com logs em validação e falhas HTTP.
@@ -62,10 +64,10 @@ dotnet run --urls "http://localhost:5201"
 
 ### Casos cobertos
 - `CheckoutControllerTests`
-  - POST `/api/v1/checkout` -> `201 Created`
-  - POST `/api/v1/checkout/autorizar` -> `200 OK`
-  - GET `/api/v1/checkout/{id}` -> `200 OK`
-  - PUT `/api/v1/checkout/{id}/cancelar` -> `204 NoContent`
+  - POST `/v1/checkouts` -> `201 Created`
+  - POST `/v1/checkouts/authorize` -> `200 OK`
+  - GET `/v1/checkouts/{id}` -> `200 OK`
+  - PUT `/v1/checkouts/{id}/cancel` -> `204 NoContent`
   - propagação de exceção HTTP do serviço
 - `CheckoutAppServiceTests`
   - mapeamento + orquestração de token/cliente C6 em criar/autorizar/consultar
@@ -75,6 +77,8 @@ dotnet run --urls "http://localhost:5201"
 - `CheckoutValidatorsTests`
   - CPF/CNPJ válidos
   - rejeição de `TaxId`, `ZipCode` e `State` inválidos
+  - rejeição quando `card` e `pix` são enviados juntos
+  - rejeição de pagamento com cartão sem `card_info`
 - `C6TokenClientTests`
   - reuso de token em cache
   - renovação automática após expiração segura

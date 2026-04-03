@@ -70,8 +70,9 @@ public sealed class PaymentValidator : AbstractValidator<PaymentDto>
 {
     public PaymentValidator()
     {
-        RuleFor(x => x).Must(p => p.Card is not null || p.Pix is not null)
-            .WithMessage("Informe cartao ou pix");
+        RuleFor(x => x)
+            .Must(p => (p.Card is null) ^ (p.Pix is null))
+            .WithMessage("Informe somente um metodo de pagamento: cartao ou pix.");
 
         When(x => x.Card is not null, () =>
         {
@@ -93,6 +94,7 @@ public sealed class CardValidator : AbstractValidator<CardDto>
         RuleFor(x => x.Installments).GreaterThan(0);
         RuleFor(x => x.InterestType).NotEmpty();
         RuleFor(x => x.Type).NotEmpty();
+        RuleFor(x => x.CardInfo).NotNull().WithMessage("CardInfo obrigatorio para pagamento com cartao.");
 
         When(x => x.CardInfo is not null, () =>
         {

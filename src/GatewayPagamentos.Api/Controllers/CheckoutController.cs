@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace GatewayPagamentos.Api.Controllers;
 
 [ApiController]
-[Route("api/v1/checkout")]
+[Route("v1/checkouts")]
 public sealed class CheckoutController : ControllerBase
 {
     private readonly ICheckoutAppService _service;
@@ -30,7 +30,7 @@ public sealed class CheckoutController : ControllerBase
         return CreatedAtAction(nameof(Consultar), new { id = result.Id }, result);
     }
 
-    [HttpPost("autorizar")]
+    [HttpPost("authorize")]
     [ProducesResponseType(typeof(CheckoutResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status408RequestTimeout)]
@@ -57,7 +57,7 @@ public sealed class CheckoutController : ControllerBase
         return Ok(result);
     }
 
-    [HttpPut("{id}/cancelar")]
+    [HttpPut("{id}/cancel")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
