@@ -43,7 +43,7 @@ public class CheckoutValidatorsTests
     }
 
     [Fact]
-    public void Validate_ComCardEPixJuntos_DeveFalhar()
+    public void Validate_ComCardEPixJuntos_DevePassar()
     {
         var request = CriarRequest("52998224725", "01311000", "SP") with
         {
@@ -64,12 +64,11 @@ public class CheckoutValidatorsTests
 
         var result = _validator.Validate(request);
 
-        Assert.False(result.IsValid);
-        Assert.Contains(result.Errors, e => e.PropertyName == "Payment");
+        Assert.True(result.IsValid);
     }
 
     [Fact]
-    public void Validate_ComCardSemCardInfo_DeveFalhar()
+    public void Validate_ComCardSemCardInfo_DevePassar()
     {
         var request = CriarRequest("52998224725", "01311000", "SP") with
         {
@@ -90,8 +89,7 @@ public class CheckoutValidatorsTests
 
         var result = _validator.Validate(request);
 
-        Assert.False(result.IsValid);
-        Assert.Contains(result.Errors, e => e.PropertyName == "Payment.Card.CardInfo");
+        Assert.True(result.IsValid);
     }
 
     private static CreateCheckoutRequestDto CriarRequest(string taxId, string zipCode, string state)

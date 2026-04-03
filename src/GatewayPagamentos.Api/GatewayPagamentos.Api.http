@@ -21,6 +21,16 @@ Content-Type: application/json
     }
   },
   "payment": {
+    "card": {
+      "authenticate": "3DS",
+      "capture": true,
+      "fixed_installments": false,
+      "installments": 1,
+      "interest_type": "NONE",
+      "recurrent": false,
+      "save_card": false,
+      "type": "CREDIT"
+    },
     "pix": {
       "key": "pix-key"
     }
@@ -63,6 +73,9 @@ Content-Type: application/json
       "card_info": {
         "token": "card-token"
       }
+    },
+    "pix": {
+      "key": "pix-key"
     }
   },
   "redirect_url": "https://exemplo.com/callback"
