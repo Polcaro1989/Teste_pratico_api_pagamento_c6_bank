@@ -2,3 +2,6 @@
 bin/
 obj/
 checkout-collection.json
+pix-collection.json
+.env
+C6 Credentials/
