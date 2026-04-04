@@ -51,6 +51,7 @@ dotnet run --urls "http://localhost:5201"
 - Contratos da API separados da integracao C6: DTOs em `src/GatewayPagamentos.Api/Contracts` e mapeamento Anti-Corruption Layer em `src/GatewayPagamentos.Api/Mappers/C6CheckoutMapper.cs`.
 - Serialização JSON na borda da API em `snake_case` para espelhar o payload do C6 (`external_reference_id`, `phone_number`, `card_info`, etc.).
 - Validação: `id` obrigatório em GET/PUT; requisições inválidas do C6 retornam 400; 404 mapeado quando o C6 responde NotFound.
+- `tax_id` validado por formato (somente dígitos com 11 ou 14 caracteres), sem checksum de CPF/CNPJ.
 - Regra de pagamento: aceita `card`, `pix` ou ambos, conforme payload enviado no JSON do C6.
 - Status codes: 201 Created (criação), 200 OK (consulta/autorizar), 204 NoContent (cancelar), 400/404 conforme erro.
 - Tratamento de erros: captura `HttpRequestException` e mapeia para `ProblemDetails`, logando warnings (400) e errors (demais status).
@@ -75,7 +76,7 @@ dotnet run --urls "http://localhost:5201"
 - `C6CheckoutMapperTests`
   - mapeamento de request API -> C6 e response C6 -> API
 - `CheckoutValidatorsTests`
-  - CPF/CNPJ válidos
+  - `tax_id` com formato válido (11 ou 14 dígitos)
   - rejeição de `TaxId`, `ZipCode` e `State` inválidos
   - aceitação quando `card` e `pix` são enviados juntos
   - aceitação de pagamento com cartão sem `card_info`

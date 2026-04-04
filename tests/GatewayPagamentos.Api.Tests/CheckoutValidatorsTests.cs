@@ -9,9 +9,9 @@ public class CheckoutValidatorsTests
     private readonly CheckoutCriarValidator _validator = new();
 
     [Fact]
-    public void Validate_ComCpfCepEUfValidos_DevePassar()
+    public void Validate_ComTaxId11Digitos_DevePassar()
     {
-        var request = CriarRequest("529.982.247-25", "01311-000", "sp");
+        var request = CriarRequest("12345678910", "01311-000", "sp");
 
         var result = _validator.Validate(request);
 
@@ -19,9 +19,9 @@ public class CheckoutValidatorsTests
     }
 
     [Fact]
-    public void Validate_ComCnpjValido_DevePassar()
+    public void Validate_ComTaxId14Digitos_DevePassar()
     {
-        var request = CriarRequest("04.252.011/0001-10", "01311000", "RJ");
+        var request = CriarRequest("04252011000110", "01311000", "RJ");
 
         var result = _validator.Validate(request);
 
@@ -31,7 +31,7 @@ public class CheckoutValidatorsTests
     [Fact]
     public void Validate_ComTaxIdCepUfInvalidos_DeveFalharNosCamposCorretos()
     {
-        var request = CriarRequest("12345678900", "12a34-567", "XX");
+        var request = CriarRequest("abc123", "12a34-567", "XX");
 
         var result = _validator.Validate(request);
         var fields = result.Errors.Select(e => e.PropertyName).ToHashSet();

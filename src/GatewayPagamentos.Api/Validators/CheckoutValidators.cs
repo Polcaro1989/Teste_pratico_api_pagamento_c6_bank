@@ -37,8 +37,8 @@ public sealed class PayerValidator : AbstractValidator<PayerDto>
         RuleFor(x => x.Name).NotEmpty();
         RuleFor(x => x.TaxId)
             .NotEmpty()
-            .Must(BrasilValidationRules.IsCpfOrCnpj)
-            .WithMessage("TaxId invalido. Informe CPF ou CNPJ validos.");
+            .Must(BrasilValidationRules.IsTaxIdFormat)
+            .WithMessage("TaxId invalido. Informe somente digitos com 11 ou 14 caracteres.");
         RuleFor(x => x.Email).NotEmpty().EmailAddress();
         RuleFor(x => x.PhoneNumber)
             .NotEmpty()
@@ -120,7 +120,7 @@ public sealed class PixPaymentValidator : AbstractValidator<PixPaymentDto>
 
 internal static class BrasilValidationRules
 {
-    private static readonly Regex DigitsRegex = new("[^0-9]", RegexOptions.Compiled);
+    private static readonly Regex TaxIdRegex = new(@"^(\d{11}|\d{14})$", RegexOptions.Compiled);
     private static readonly Regex CepRegex = new(@"^\d{5}-?\d{3}$", RegexOptions.Compiled);
     private static readonly HashSet<string> Ufs =
     [
@@ -129,15 +129,14 @@ internal static class BrasilValidationRules
         "RS", "RO", "RR", "SC", "SP", "SE", "TO"
     ];
 
-    public static bool IsCpfOrCnpj(string? input)
+    public static bool IsTaxIdFormat(string? input)
     {
         if (string.IsNullOrWhiteSpace(input))
         {
             return false;
         }
 
-        var digits = OnlyDigits(input);
-        return IsCpf(digits) || IsCnpj(digits);
+        return TaxIdRegex.IsMatch(input.Trim());
     }
 
     public static bool IsCep(string? input)
@@ -160,73 +159,4 @@ internal static class BrasilValidationRules
         var uf = input.Trim().ToUpperInvariant();
         return uf.Length == 2 && Ufs.Contains(uf);
     }
-
-    private static bool IsCpf(string digits)
-    {
-        if (digits.Length != 11 || AllDigitsEqual(digits))
-        {
-            return false;
-        }
-
-        var first = CalculateCpfDigit(digits.AsSpan(0, 9), 10);
-        var second = CalculateCpfDigit(digits.AsSpan(0, 10), 11);
-
-        return first == (digits[9] - '0') && second == (digits[10] - '0');
-    }
-
-    private static bool IsCnpj(string digits)
-    {
-        if (digits.Length != 14 || AllDigitsEqual(digits))
-        {
-            return false;
-        }
-
-        var weights1 = new[] { 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2 };
-        var weights2 = new[] { 6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2 };
-
-        var first = CalculateCnpjDigit(digits.AsSpan(0, 12), weights1);
-        var second = CalculateCnpjDigit(digits.AsSpan(0, 13), weights2);
-
-        return first == (digits[12] - '0') && second == (digits[13] - '0');
-    }
-
-    private static int CalculateCpfDigit(ReadOnlySpan<char> digits, int weightStart)
-    {
-        var sum = 0;
-        for (var i = 0; i < digits.Length; i++)
-        {
-            sum += (digits[i] - '0') * (weightStart - i);
-        }
-
-        var remainder = sum % 11;
-        return remainder < 2 ? 0 : 11 - remainder;
-    }
-
-    private static int CalculateCnpjDigit(ReadOnlySpan<char> digits, ReadOnlySpan<int> weights)
-    {
-        var sum = 0;
-        for (var i = 0; i < digits.Length; i++)
-        {
-            sum += (digits[i] - '0') * weights[i];
-        }
-
-        var remainder = sum % 11;
-        return remainder < 2 ? 0 : 11 - remainder;
-    }
-
-    private static bool AllDigitsEqual(string digits)
-    {
-        var first = digits[0];
-        for (var i = 1; i < digits.Length; i++)
-        {
-            if (digits[i] != first)
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private static string OnlyDigits(string value) => DigitsRegex.Replace(value, string.Empty);
 }
