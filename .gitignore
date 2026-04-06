@@ -1,0 +1,17 @@
+﻿# Build artifacts
+bin/
+obj/
+.tmp/
+
+# Local logs and transient reports
+*.log
+run_api*.log
+tmp_*.log
+real-endpoint-test-*.json
+
+# Collections / secrets
+checkout-collection.json
+pix-collection.json
+.env
+C6 Credentials/
+tmp_pix_full/

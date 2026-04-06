@@ -8,4 +8,5 @@ public sealed record C6Settings
     public required string ClientSecret { get; init; }
     public required string ClientCertificatePath { get; init; }
     public required string ClientCertificatePassword { get; init; }
+    public bool AllowInsecureServerCertificateInDevelopment { get; init; }
 }

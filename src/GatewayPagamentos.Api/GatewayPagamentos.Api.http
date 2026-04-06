@@ -1,6 +1,195 @@
-@GatewayPagamentos.Api_HostAddress = http://localhost:5163
+﻿@GatewayPagamentos.Api_HostAddress = http://localhost:5163
 
-GET {{GatewayPagamentos.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+POST {{GatewayPagamentos.Api_HostAddress}}/v1/checkouts
+Content-Type: application/json
+
+{
+  "amount": 100.50,
+  "description": "pedido teste",
+  "external_reference_id": "REF123",
+  "payer": {
+    "name": "Cliente Teste",
+    "tax_id": "12345678910",
+    "email": "cliente@teste.com",
+    "phone_number": "+5511999999999",
+    "address": {
+      "street": "Av Paulista",
+      "number": 1000,
+      "city": "Sao Paulo",
+      "state": "SP",
+      "zip_code": "01311-000"
+    }
+  },
+  "payment": {
+    "card": {
+      "authenticate": "3DS",
+      "capture": true,
+      "fixed_installments": false,
+      "installments": 1,
+      "interest_type": "NONE",
+      "recurrent": false,
+      "save_card": false,
+      "type": "CREDIT"
+    },
+    "pix": {
+      "key": "pix-key"
+    }
+  },
+  "redirect_url": "https://exemplo.com/callback"
+}
 
 ###
+
+POST {{GatewayPagamentos.Api_HostAddress}}/v1/checkouts/authorize
+Content-Type: application/json
+
+{
+  "amount": 100.50,
+  "description": "pedido teste",
+  "external_reference_id": "REF123",
+  "payer": {
+    "name": "Cliente Teste",
+    "tax_id": "12345678910",
+    "email": "cliente@teste.com",
+    "phone_number": "+5511999999999",
+    "address": {
+      "street": "Av Paulista",
+      "number": 1000,
+      "city": "Sao Paulo",
+      "state": "SP",
+      "zip_code": "01311-000"
+    }
+  },
+  "payment": {
+    "card": {
+      "authenticate": "3DS",
+      "capture": true,
+      "fixed_installments": false,
+      "installments": 1,
+      "interest_type": "NONE",
+      "recurrent": false,
+      "save_card": false,
+      "type": "CREDIT",
+      "card_info": {
+        "token": "card-token"
+      }
+    },
+    "pix": {
+      "key": "pix-key"
+    }
+  },
+  "redirect_url": "https://exemplo.com/callback"
+}
+
+###
+
+GET {{GatewayPagamentos.Api_HostAddress}}/v1/checkouts/SEU_CHECKOUT_ID
+
+###
+
+PUT {{GatewayPagamentos.Api_HostAddress}}/v1/checkouts/SEU_CHECKOUT_ID/cancel
+
+###
+
+POST {{GatewayPagamentos.Api_HostAddress}}/v2/pix/cob
+Content-Type: application/json
+
+{
+  "calendario": {
+    "expiracao": 3600
+  },
+  "devedor": {
+    "cpf": "52998224725",
+    "nome": "Jose da Silva"
+  },
+  "valor": {
+    "original": "1.00",
+    "modalidadeAlteracao": 1
+  },
+  "chave": "SUA_CHAVE_PIX",
+  "solicitacaoPagador": "Teste PIX direto",
+  "infoAdicionais": [
+    {
+      "nome": "pedido",
+      "valor": "PIX-1"
+    }
+  ]
+}
+
+###
+
+PUT {{GatewayPagamentos.Api_HostAddress}}/v2/pix/cob/TxidPixDireto1234567890ABCDE12
+Content-Type: application/json
+
+{
+  "calendario": {
+    "expiracao": 3600
+  },
+  "devedor": {
+    "cpf": "52998224725",
+    "nome": "Jose da Silva"
+  },
+  "valor": {
+    "original": "1.00",
+    "modalidadeAlteracao": 1
+  },
+  "chave": "SUA_CHAVE_PIX",
+  "solicitacaoPagador": "Teste PIX direto com txid",
+  "infoAdicionais": [
+    {
+      "nome": "pedido",
+      "valor": "PIX-2"
+    }
+  ]
+}
+
+###
+
+GET {{GatewayPagamentos.Api_HostAddress}}/v2/pix/cob/TxidPixDireto1234567890ABCDE12
+
+###
+
+GET {{GatewayPagamentos.Api_HostAddress}}/v2/pix/cob?inicio=2026-04-06T00:00:00-03:00&fim=2026-04-06T23:59:59-03:00
+
+###
+
+PUT {{GatewayPagamentos.Api_HostAddress}}/v2/pix/cobv/TxidPixCobv1234567890ABCDE123
+Content-Type: application/json
+
+{
+  "calendario": {
+    "dataDeVencimento": "2026-12-31",
+    "validadeAposVencimento": 30
+  },
+  "devedor": {
+    "logradouro": "Rua A, 100",
+    "cidade": "Sao Paulo",
+    "uf": "SP",
+    "cep": "01001000",
+    "cpf": "52998224725",
+    "nome": "Jose da Silva"
+  },
+  "valor": {
+    "original": "1.00"
+  },
+  "chave": "SUA_CHAVE_PIX",
+  "solicitacaoPagador": "Teste cobv"
+}
+
+###
+
+GET {{GatewayPagamentos.Api_HostAddress}}/v2/pix/cobv/TxidPixCobv1234567890ABCDE123
+
+###
+
+GET {{GatewayPagamentos.Api_HostAddress}}/v2/pix/cobv?inicio=2026-04-06T00:00:00-03:00&fim=2026-04-06T23:59:59-03:00
+
+###
+
+PUT {{GatewayPagamentos.Api_HostAddress}}/v2/pix/webhook/SUA_CHAVE_PIX
+Content-Type: application/json
+
+{
+  "webhookUrl": "https://meusistema.com.br/webhooks/pix"
+}
+
