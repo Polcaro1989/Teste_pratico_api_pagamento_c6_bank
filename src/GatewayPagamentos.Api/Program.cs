@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using GatewayPagamentos.Api.Configuration;
 using GatewayPagamentos.Api.Exceptions;
 using GatewayPagamentos.Api.Health;
 using GatewayPagamentos.Api.Middleware;
@@ -9,6 +10,8 @@ using GatewayPagamentos.Api.Validators;
 using GatewayPagamentos.IntegracoesC6;
 using Microsoft.OpenApi.Models;
 using Serilog;
+
+EnvFileLoader.LoadIfExists();
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -36,6 +39,7 @@ builder.Services.AddSwaggerGen(c =>
 
 builder.Services.AddC6Clients(c6Settings);
 builder.Services.AddScoped<ICheckoutAppService, CheckoutAppService>();
+builder.Services.AddScoped<IPixAppService, PixAppService>();
 builder.Services.AddValidatorsFromAssemblyContaining<CheckoutCriarValidator>();
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
@@ -64,3 +68,4 @@ app.MapControllers();
 app.MapHealthChecks("/health");
 
 app.Run();
+

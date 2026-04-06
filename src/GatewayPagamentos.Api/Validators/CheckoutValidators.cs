@@ -10,7 +10,10 @@ public sealed class CheckoutCriarValidator : AbstractValidator<CreateCheckoutReq
     {
         RuleFor(x => x.Amount).GreaterThan(0);
         RuleFor(x => x.Description).NotEmpty();
-        RuleFor(x => x.ExternalReferenceId).NotEmpty();
+        RuleFor(x => x.ExternalReferenceId)
+            .NotEmpty()
+            .Matches("^[a-zA-Z0-9]{1,10}$")
+            .WithMessage("ExternalReferenceId invalido. Use apenas alfanumerico com 1 a 10 caracteres.");
         RuleFor(x => x.RedirectUrl).NotEmpty();
         RuleFor(x => x.Payer).SetValidator(new PayerValidator());
         RuleFor(x => x.Payment).SetValidator(new PaymentValidator());
@@ -23,7 +26,10 @@ public sealed class CheckoutAutorizarValidator : AbstractValidator<AuthorizeChec
     {
         RuleFor(x => x.Amount).GreaterThan(0);
         RuleFor(x => x.Description).NotEmpty();
-        RuleFor(x => x.ExternalReferenceId).NotEmpty();
+        RuleFor(x => x.ExternalReferenceId)
+            .NotEmpty()
+            .Matches("^[a-zA-Z0-9]{1,10}$")
+            .WithMessage("ExternalReferenceId invalido. Use apenas alfanumerico com 1 a 10 caracteres.");
         RuleFor(x => x.RedirectUrl).NotEmpty();
         RuleFor(x => x.Payer).SetValidator(new PayerValidator());
         RuleFor(x => x.Payment).SetValidator(new PaymentValidator());

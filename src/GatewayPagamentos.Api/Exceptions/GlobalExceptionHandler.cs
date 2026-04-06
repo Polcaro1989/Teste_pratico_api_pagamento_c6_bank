@@ -50,6 +50,12 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
                 ex.Message,
                 LogLevel.Warning),
 
+            InvalidOperationException ex when ex.Message.Contains("Certificado", StringComparison.OrdinalIgnoreCase) => (
+                StatusCodes.Status503ServiceUnavailable,
+                "Falha de certificado mTLS do provedor",
+                null,
+                LogLevel.Error),
+
             HttpRequestException { StatusCode: HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden } => (
                 StatusCodes.Status503ServiceUnavailable,
                 "Erro de autenticacao com provedor",
@@ -59,6 +65,12 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
             HttpRequestException ex when ex.StatusCode.HasValue => (
                 (int)ex.StatusCode.Value,
                 "Erro na chamada ao provedor C6",
+                null,
+                LogLevel.Error),
+
+            HttpRequestException => (
+                StatusCodes.Status503ServiceUnavailable,
+                "Provedor C6 indisponivel",
                 null,
                 LogLevel.Error),
 
