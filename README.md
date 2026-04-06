@@ -320,8 +320,3 @@ A API C6 completa de PIX tem endpoints adicionais não implementados aqui, por e
 - `GET/DELETE /v2/pix/webhook/{chave}`
 - blocos `loc`, `lotecobv`, `pix recebidos/devolução`
 
-## Segurança
-- Este repositório não deve armazenar credenciais reais.
-- `.env` e pasta de credenciais estão ignorados no `.gitignore`.
-- Nunca exponha `client_secret`, senha do `.pfx` ou conteúdo de certificado em commit/log.
-
