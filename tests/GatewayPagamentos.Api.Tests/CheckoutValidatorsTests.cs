@@ -92,12 +92,40 @@ public class CheckoutValidatorsTests
         Assert.True(result.IsValid);
     }
 
+    [Fact]
+    public void Validate_ComExternalReferenceIdMaiorQue10_DeveFalhar()
+    {
+        var request = CriarRequest("52998224725", "01311000", "SP") with
+        {
+            ExternalReferenceId = "ABCDEFGHIJK"
+        };
+
+        var result = _validator.Validate(request);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.PropertyName == "ExternalReferenceId");
+    }
+
+    [Fact]
+    public void Validate_ComExternalReferenceIdComCaracterEspecial_DeveFalhar()
+    {
+        var request = CriarRequest("52998224725", "01311000", "SP") with
+        {
+            ExternalReferenceId = "REF-123"
+        };
+
+        var result = _validator.Validate(request);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.PropertyName == "ExternalReferenceId");
+    }
+
     private static CreateCheckoutRequestDto CriarRequest(string taxId, string zipCode, string state)
     {
         return new CreateCheckoutRequestDto(
             Amount: 150,
             Description: "descricao",
-            ExternalReferenceId: "ref-1",
+            ExternalReferenceId: "REF123",
             Payer: new PayerDto(
                 Name: "Cliente",
                 TaxId: taxId,

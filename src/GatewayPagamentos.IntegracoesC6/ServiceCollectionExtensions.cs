@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using System.Net.Http;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.Extensions.DependencyInjection;
 using Polly;
@@ -16,6 +17,7 @@ public static class ServiceCollectionExtensions
         services.AddMemoryCache();
         services.AddSingleton<IC6TokenClient, C6TokenClient>();
         services.AddScoped<IC6CheckoutClient, C6CheckoutClient>();
+        services.AddScoped<IC6PixClient, C6PixClient>();
 
         var retryPolicy = HttpPolicyExtensions
             .HandleTransientHttpError()
@@ -78,10 +80,7 @@ public static class ServiceCollectionExtensions
         {
             try
             {
-                var cert = X509CertificateLoader.LoadPkcs12FromFile(
-                    certPath,
-                    certPassword,
-                    X509KeyStorageFlags.EphemeralKeySet);
+                var cert = LoadClientCertificate(certPath, certPassword);
                 handler.ClientCertificates.Add(cert);
             }
             catch (Exception ex)
@@ -108,5 +107,41 @@ public static class ServiceCollectionExtensions
         }
 
         return handler;
+    }
+
+    private static X509Certificate2 LoadClientCertificate(string certPath, string certPassword)
+    {
+        Exception? lastError = null;
+
+        foreach (var flags in ResolveCertificateKeyStorageFlags())
+        {
+            try
+            {
+                return X509CertificateLoader.LoadPkcs12FromFile(certPath, certPassword, flags);
+            }
+            catch (CryptographicException ex)
+            {
+                lastError = ex;
+            }
+        }
+
+        throw new InvalidOperationException(
+            $"Não foi possível carregar o certificado usando os modos suportados no sistema operacional. Caminho: '{certPath}'",
+            lastError);
+    }
+
+    private static X509KeyStorageFlags[] ResolveCertificateKeyStorageFlags()
+    {
+        // No Windows, Schannel falha com EphemeralKeySet em mTLS e alguns ambientes bloqueiam MachineKeySet.
+        if (OperatingSystem.IsWindows())
+        {
+            return
+            [
+                X509KeyStorageFlags.UserKeySet | X509KeyStorageFlags.PersistKeySet,
+                X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.PersistKeySet
+            ];
+        }
+
+        return [X509KeyStorageFlags.EphemeralKeySet];
     }
 }

@@ -79,7 +79,7 @@ public sealed class C6TokenClient : IC6TokenClient
 
         using var content = new FormUrlEncodedContent(form);
         var response = await client.PostAsync("", content, ct);
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessOrThrowAsync(response, ct);
 
         return await response.Content.ReadFromJsonAsync<TokenResponse>(JsonOptions, ct)
                ?? throw new InvalidOperationException("Resposta de token vazia");
@@ -109,6 +109,24 @@ public sealed class C6TokenClient : IC6TokenClient
 
         var safeTtl = rawTtl - refreshMargin;
         return safeTtl < TimeSpan.FromSeconds(5) ? TimeSpan.FromSeconds(5) : safeTtl;
+    }
+
+    private static async Task EnsureSuccessOrThrowAsync(HttpResponseMessage response, CancellationToken ct)
+    {
+        if (response.IsSuccessStatusCode)
+        {
+            return;
+        }
+
+        var body = await response.Content.ReadAsStringAsync(ct);
+        var bodySnippet = string.IsNullOrWhiteSpace(body)
+            ? "sem corpo"
+            : (body.Length > 500 ? $"{body[..500]}..." : body);
+
+        throw new HttpRequestException(
+            $"C6 token retornou {(int)response.StatusCode} {response.ReasonPhrase}: {bodySnippet}",
+            null,
+            response.StatusCode);
     }
 
     private sealed record CachedToken(TokenResponse Token, DateTimeOffset ExpiresAtUtc);
